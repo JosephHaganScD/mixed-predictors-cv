@@ -1,0 +1,236 @@
+ROP Tier 1 Full-Predictor-Set Analysis (Ridge + XGBoost)
+2026-07-02 19:30:33.84455
+
+Rows after complete-case restriction: 5567 (186 excluded)
+Subjects: 100
+Median observations per subject: 57 [range 44-60]
+
+Primary outcome (any ROP):    48 events / 100 subjects (48.0%)
+Secondary outcome (severe ROP): 15 events / 100 subjects (15.0%)
+
+========== SUBJECT UNIQUENESS (FIXED PREDICTORS) ==========
+Q4 binning: 65.2% of subjects uniquely identified (mean class size 1.52, max 5)
+Q10 binning: 93.5% of subjects uniquely identified (mean class size 1.08, max 3)
+Raw BWGT x GA: 100.0% of subjects uniquely identified
+
+========== DEPENDENCE STRUCTURE (LONGITUDINAL PREDICTORS) ==========
+
+Variable                   Mean       SD     ICC  Lag-1 rho [IQR]
+---------------------------------------------------------------------- 
+Avg_FiO2                 32.711   12.329    0.53  0.73 [0.63, 0.83]
+Avg_SpO2                 91.506    1.777    0.30  0.58 [0.38, 0.74]
+Severe_Hypoxemia__        0.043    0.037    0.17  0.60 [0.48, 0.71]
+Amb_Hyperox_              0.076    0.165    0.38  0.59 [0.38, 0.78]
+Iatr_HyperOx_             0.143    0.099    0.16  0.45 [0.33, 0.58]
+Swings                   26.059   29.458    0.19  0.64 [0.51, 0.73]
+Tit_Index                 1.299    1.005    0.32  0.48 [0.34, 0.61]
+
+
+========== PRIMARY: Any ROP (n=101, 48 events, 47.5%) | LEARNER: RIDGE ==========
+
+  --- Arm A: Fixed-Only (8 predictors) [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Arm B: Longitudinal-Only (7 predictors) [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Arm C: Mixed (15 predictors) [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+
+--- RESULTS TABLE: PRIMARY: Any ROP (n=101, 48 events, 47.5%) | ridge ---
+Config        Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Arm A: Fix    Naive 10f      0.792  [0.792, 0.793]       +0.086  [+0.085, +0.087]
+              Subject 10f     0.703  [0.679, 0.727]       -0.003  [-0.027, +0.020]
+              LOCO           0.706  [0.603, 0.810]          ---  (reference)
+------------------------------------------------------------------------------------------ 
+Arm B: Lon    Naive 10f      0.682  [0.679, 0.684]       +0.076  [+0.073, +0.078]
+              Subject 10f     0.593  [0.555, 0.622]       -0.012  [-0.051, +0.016]
+              LOCO           0.606  [0.494, 0.717]          ---  (reference)
+------------------------------------------------------------------------------------------ 
+Arm C: Mix    Naive 10f      0.818  [0.817, 0.819]       +0.100  [+0.099, +0.101]
+              Subject 10f     0.715  [0.692, 0.740]       -0.003  [-0.026, +0.022]
+              LOCO           0.718  [0.616, 0.820]          ---  (reference)
+------------------------------------------------------------------------------------------ 
+
+--- ADDITIVITY CHECK: PRIMARY: Any ROP (n=101, 48 events, 47.5%) | ridge ---
+  Delta_naive (fixed-only):       +0.0859
+  Delta_naive (longitudinal-only): +0.0760
+  Sum (additive prediction):       +0.1618
+  Delta_naive (mixed):             +0.1001
+  Departure from additivity:       -0.0618  (sub-additive)
+
+  Subject-level deviation check:
+  Delta_subject (fixed-only):       -0.0034
+  Delta_subject (longitudinal-only): -0.0125
+  Sum (additive prediction):         -0.0159
+  Delta_subject (mixed):             -0.0031
+  Departure from additivity:         +0.0129
+
+
+========== SECONDARY: Severe ROP (n=101, 15 events, 14.9%) | LEARNER: RIDGE ==========
+
+  --- Arm A: Fixed-Only (8 predictors) [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Arm B: Longitudinal-Only (7 predictors) [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Arm C: Mixed (15 predictors) [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+
+--- RESULTS TABLE: SECONDARY: Severe ROP (n=101, 15 events, 14.9%) | ridge ---
+Config        Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Arm A: Fix    Naive 10f      0.864  [0.864, 0.864]       +0.163  [+0.162, +0.163]
+              Subject 10f     0.706  [0.685, 0.728]       +0.005  [-0.016, +0.027]
+              LOCO           0.701  [0.507, 0.896]          ---  (reference)
+------------------------------------------------------------------------------------------ 
+Arm B: Lon    Naive 10f      0.700  [0.696, 0.703]       +0.193  [+0.189, +0.197]
+              Subject 10f     0.532  [0.450, 0.603]       +0.025  [-0.057, +0.096]
+              LOCO           0.507  [0.365, 0.648]          ---  (reference)
+------------------------------------------------------------------------------------------ 
+Arm C: Mix    Naive 10f      0.885  [0.883, 0.885]       +0.177  [+0.176, +0.178]
+              Subject 10f     0.708  [0.686, 0.730]       +0.001  [-0.021, +0.023]
+              LOCO           0.707  [0.513, 0.902]          ---  (reference)
+------------------------------------------------------------------------------------------ 
+
+--- ADDITIVITY CHECK: SECONDARY: Severe ROP (n=101, 15 events, 14.9%) | ridge ---
+  Delta_naive (fixed-only):       +0.1625
+  Delta_naive (longitudinal-only): +0.1933
+  Sum (additive prediction):       +0.3558
+  Delta_naive (mixed):             +0.1773
+  Departure from additivity:       -0.1785  (sub-additive)
+
+  Subject-level deviation check:
+  Delta_subject (fixed-only):       +0.0048
+  Delta_subject (longitudinal-only): +0.0251
+  Sum (additive prediction):         +0.0299
+  Delta_subject (mixed):             +0.0009
+  Departure from additivity:         -0.0290
+
+
+========== PRIMARY: Any ROP (n=101, 48 events, 47.5%) | LEARNER: XGBOOST ==========
+
+  --- Arm A: Fixed-Only (8 predictors) [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Arm B: Longitudinal-Only (7 predictors) [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Arm C: Mixed (15 predictors) [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+
+--- RESULTS TABLE: PRIMARY: Any ROP (n=101, 48 events, 47.5%) | xgboost ---
+Config        Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Arm A: Fix    Naive 10f      1.000  [1.000, 1.000]       +0.347  [+0.347, +0.347]
+              Subject 10f     0.644  [0.606, 0.675]       -0.009  [-0.047, +0.022]
+              LOCO           0.653  [0.544, 0.762]          ---  (reference)
+------------------------------------------------------------------------------------------ 
+Arm B: Lon    Naive 10f      0.742  [0.736, 0.747]       +0.152  [+0.147, +0.157]
+              Subject 10f     0.591  [0.547, 0.622]       +0.001  [-0.042, +0.033]
+              LOCO           0.590  [0.477, 0.703]          ---  (reference)
+------------------------------------------------------------------------------------------ 
+Arm C: Mix    Naive 10f      1.000  [1.000, 1.000]       +0.363  [+0.363, +0.363]
+              Subject 10f     0.642  [0.602, 0.681]       +0.005  [-0.035, +0.043]
+              LOCO           0.637  [0.527, 0.748]          ---  (reference)
+------------------------------------------------------------------------------------------ 
+
+--- ADDITIVITY CHECK: PRIMARY: Any ROP (n=101, 48 events, 47.5%) | xgboost ---
+  Delta_naive (fixed-only):       +0.3470
+  Delta_naive (longitudinal-only): +0.1518
+  Sum (additive prediction):       +0.4987
+  Delta_naive (mixed):             +0.3626
+  Departure from additivity:       -0.1362  (sub-additive)
+
+  Subject-level deviation check:
+  Delta_subject (fixed-only):       -0.0088
+  Delta_subject (longitudinal-only): +0.0010
+  Sum (additive prediction):         -0.0078
+  Delta_subject (mixed):             +0.0048
+  Departure from additivity:         +0.0127
+
+
+========== SECONDARY: Severe ROP (n=101, 15 events, 14.9%) | LEARNER: XGBOOST ==========
+
+  --- Arm A: Fixed-Only (8 predictors) [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Arm B: Longitudinal-Only (7 predictors) [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Arm C: Mixed (15 predictors) [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+
+--- RESULTS TABLE: SECONDARY: Severe ROP (n=101, 15 events, 14.9%) | xgboost ---
+Config        Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Arm A: Fix    Naive 10f      1.000  [1.000, 1.000]       +0.240  [+0.240, +0.240]
+              Subject 10f     0.735  [0.668, 0.785]       -0.025  [-0.092, +0.025]
+              LOCO           0.760  [0.627, 0.893]          ---  (reference)
+------------------------------------------------------------------------------------------ 
+Arm B: Lon    Naive 10f      0.793  [0.779, 0.807]       +0.227  [+0.212, +0.240]
+              Subject 10f     0.562  [0.481, 0.635]       -0.004  [-0.085, +0.069]
+              LOCO           0.566  [0.431, 0.702]          ---  (reference)
+------------------------------------------------------------------------------------------ 
+Arm C: Mix    Naive 10f      1.000  [1.000, 1.000]       +0.245  [+0.245, +0.245]
+              Subject 10f     0.747  [0.665, 0.803]       -0.008  [-0.090, +0.049]
+              LOCO           0.755  [0.613, 0.896]          ---  (reference)
+------------------------------------------------------------------------------------------ 
+
+--- ADDITIVITY CHECK: SECONDARY: Severe ROP (n=101, 15 events, 14.9%) | xgboost ---
+  Delta_naive (fixed-only):       +0.2400
+  Delta_naive (longitudinal-only): +0.2267
+  Sum (additive prediction):       +0.4667
+  Delta_naive (mixed):             +0.2455
+  Departure from additivity:       -0.2213  (sub-additive)
+
+  Subject-level deviation check:
+  Delta_subject (fixed-only):       -0.0251
+  Delta_subject (longitudinal-only): -0.0039
+  Sum (additive prediction):         -0.0290
+  Delta_subject (mixed):             -0.0078
+  Departure from additivity:         +0.0212
+
+========== LOCO vs SUBJECT 10-FOLD EQUIVALENCE (any ROP) ==========
+(Replicates finding from companion paper; expected near-equivalence)
+
+[ridge   ] Arm A: Fixed-Only (8 predictors) [ridge]       Subject 10f - LOCO = -0.0034
+[ridge   ] Arm B: Longitudinal-Only (7 predictors) [ridge]  Subject 10f - LOCO = -0.0125
+[ridge   ] Arm C: Mixed (15 predictors) [ridge]           Subject 10f - LOCO = -0.0031
+[xgboost ] Arm A: Fixed-Only (8 predictors) [xgboost]     Subject 10f - LOCO = -0.0088
+[xgboost ] Arm B: Longitudinal-Only (7 predictors) [xgboost]  Subject 10f - LOCO = +0.0010
+[xgboost ] Arm C: Mixed (15 predictors) [xgboost]         Subject 10f - LOCO = +0.0048
+
+
+Analysis complete: 2026-07-02 19:46:18.451983
+Output saved to: C:/Users/jlhagan/OneDrive - Texas Children's/WSS-onedrive-migration/Desktop/MY NOTES/1st author papers/mixed predictors/ROP analysis/results/rop_decomposition_xgb_2026-07-02.txt

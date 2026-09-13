@@ -1,0 +1,348 @@
+ROP Tier 2 Sensitivity Analysis
+2026-07-02 19:53:19.91912
+
+Rows after complete-case restriction: 5620 (133 excluded)
+Subjects: 101
+
+Primary outcome (any ROP):      48 events / 101 subjects (47.5%)
+Secondary outcome (severe ROP): 15 events / 101 subjects (14.9%)
+Raw BWGT x GA: 100.0% of subjects uniquely identified
+
+
+========== LEARNER: RIDGE | PRIMARY: Any ROP (48 events) ==========
+
+  --- Fixed-only (BWGT+GA) [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Longitudinal-only V1 (Avg_FiO2+Severe_Hypoxemia__) [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Mixed BWGT+GA + V1 [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+--- RESULTS: ridge | any_rop | V1 ---
+Config      Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Fixed-only  Naive 10f      0.657  [0.656, 0.658]       +0.048  [+0.047, +0.049]
+            Subject 10f     0.607  [0.586, 0.628]       -0.002  [-0.023, +0.018]
+            LOCO           0.609  [0.497, 0.722]          ---  (reference)
+Longitudin  Naive 10f      0.680  [0.678, 0.682]       +0.080  [+0.078, +0.082]
+            Subject 10f     0.583  [0.528, 0.635]       -0.018  [-0.072, +0.035]
+            LOCO           0.600  [0.488, 0.713]          ---  (reference)
+Mixed BWGT  Naive 10f      0.683  [0.682, 0.684]       +0.057  [+0.056, +0.058]
+            Subject 10f     0.623  [0.595, 0.643]       -0.003  [-0.030, +0.018]
+            LOCO           0.625  [0.514, 0.736]          ---  (reference)
+
+  Additivity (V1): Delta_A=+0.0481 Delta_B=+0.0797 Sum=+0.1278 Delta_C=+0.0571 Departure=-0.0707 (sub-additive)
+
+  --- Longitudinal-only V2 (Avg_FiO2+Avg_SpO2) [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Mixed BWGT+GA + V2 [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+--- RESULTS: ridge | any_rop | V2 ---
+Config      Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Fixed-only  Naive 10f      0.657  [0.656, 0.658]       +0.048  [+0.047, +0.049]
+            Subject 10f     0.607  [0.586, 0.628]       -0.002  [-0.023, +0.018]
+            LOCO           0.609  [0.497, 0.722]          ---  (reference)
+Longitudin  Naive 10f      0.667  [0.664, 0.669]       +0.064  [+0.061, +0.066]
+            Subject 10f     0.587  [0.512, 0.639]       -0.016  [-0.091, +0.036]
+            LOCO           0.603  [0.491, 0.715]          ---  (reference)
+Mixed BWGT  Naive 10f      0.688  [0.688, 0.689]       +0.065  [+0.064, +0.066]
+            Subject 10f     0.624  [0.599, 0.647]       +0.001  [-0.024, +0.024]
+            LOCO           0.624  [0.513, 0.735]          ---  (reference)
+
+  Additivity (V2): Delta_A=+0.0481 Delta_B=+0.0638 Sum=+0.1119 Delta_C=+0.0646 Departure=-0.0473 (sub-additive)
+
+  --- Longitudinal-only V3 (Avg_FiO2+Avg_SpO2+Severe_Hypoxemia__) [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Mixed BWGT+GA + V3 [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+--- RESULTS: ridge | any_rop | V3 ---
+Config      Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Fixed-only  Naive 10f      0.657  [0.656, 0.658]       +0.048  [+0.047, +0.049]
+            Subject 10f     0.607  [0.586, 0.628]       -0.002  [-0.023, +0.018]
+            LOCO           0.609  [0.497, 0.722]          ---  (reference)
+Longitudin  Naive 10f      0.663  [0.660, 0.664]       +0.069  [+0.067, +0.071]
+            Subject 10f     0.576  [0.511, 0.624]       -0.017  [-0.082, +0.031]
+            LOCO           0.594  [0.482, 0.705]          ---  (reference)
+Mixed BWGT  Naive 10f      0.692  [0.690, 0.693]       +0.070  [+0.069, +0.072]
+            Subject 10f     0.624  [0.598, 0.644]       +0.003  [-0.023, +0.023]
+            LOCO           0.621  [0.510, 0.732]          ---  (reference)
+
+  Additivity (V3): Delta_A=+0.0481 Delta_B=+0.0692 Sum=+0.1173 Delta_C=+0.0705 Departure=-0.0468 (sub-additive)
+
+
+========== LEARNER: RIDGE | SECONDARY: Severe ROP (15 events; caution -- unstable, see header) ==========
+
+  --- Fixed-only (BWGT+GA) [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Longitudinal-only V1 (Avg_FiO2+Severe_Hypoxemia__) [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Mixed BWGT+GA + V1 [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+--- RESULTS: ridge | severe_rop | V1 ---
+Config      Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Fixed-only  Naive 10f      0.705  [0.704, 0.707]       +0.057  [+0.056, +0.059]
+            Subject 10f     0.649  [0.612, 0.681]       +0.001  [-0.036, +0.032]
+            LOCO           0.648  [0.487, 0.809]          ---  (reference)
+Longitudin  Naive 10f      0.701  [0.698, 0.704]       +0.172  [+0.168, +0.175]
+            Subject 10f     0.541  [0.450, 0.614]       +0.012  [-0.079, +0.085]
+            LOCO           0.529  [0.369, 0.690]          ---  (reference)
+Mixed BWGT  Naive 10f      0.728  [0.726, 0.729]       +0.071  [+0.070, +0.073]
+            Subject 10f     0.653  [0.604, 0.691]       -0.004  [-0.052, +0.034]
+            LOCO           0.657  [0.494, 0.819]          ---  (reference)
+
+  Additivity (V1): Delta_A=+0.0574 Delta_B=+0.1719 Sum=+0.2293 Delta_C=+0.0712 Departure=-0.1581 (sub-additive)
+
+  --- Longitudinal-only V2 (Avg_FiO2+Avg_SpO2) [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Mixed BWGT+GA + V2 [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+--- RESULTS: ridge | severe_rop | V2 ---
+Config      Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Fixed-only  Naive 10f      0.705  [0.704, 0.707]       +0.057  [+0.056, +0.059]
+            Subject 10f     0.649  [0.612, 0.681]       +0.001  [-0.036, +0.032]
+            LOCO           0.648  [0.487, 0.809]          ---  (reference)
+Longitudin  Naive 10f      0.681  [0.677, 0.684]       +0.167  [+0.164, +0.171]
+            Subject 10f     0.535  [0.460, 0.606]       +0.022  [-0.053, +0.093]
+            LOCO           0.513  [0.367, 0.660]          ---  (reference)
+Mixed BWGT  Naive 10f      0.733  [0.730, 0.735]       +0.073  [+0.071, +0.075]
+            Subject 10f     0.654  [0.606, 0.690]       -0.005  [-0.054, +0.030]
+            LOCO           0.660  [0.498, 0.821]          ---  (reference)
+
+  Additivity (V2): Delta_A=+0.0574 Delta_B=+0.1674 Sum=+0.2247 Delta_C=+0.0732 Departure=-0.1516 (sub-additive)
+
+  --- Longitudinal-only V3 (Avg_FiO2+Avg_SpO2+Severe_Hypoxemia__) [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Mixed BWGT+GA + V3 [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+--- RESULTS: ridge | severe_rop | V3 ---
+Config      Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Fixed-only  Naive 10f      0.705  [0.704, 0.707]       +0.057  [+0.056, +0.059]
+            Subject 10f     0.649  [0.612, 0.681]       +0.001  [-0.036, +0.032]
+            LOCO           0.648  [0.487, 0.809]          ---  (reference)
+Longitudin  Naive 10f      0.697  [0.692, 0.702]       +0.202  [+0.197, +0.207]
+            Subject 10f     0.534  [0.455, 0.609]       +0.040  [-0.039, +0.114]
+            LOCO           0.495  [0.343, 0.646]          ---  (reference)
+Mixed BWGT  Naive 10f      0.731  [0.729, 0.732]       +0.076  [+0.074, +0.077]
+            Subject 10f     0.650  [0.603, 0.686]       -0.005  [-0.053, +0.031]
+            LOCO           0.655  [0.494, 0.816]          ---  (reference)
+
+  Additivity (V3): Delta_A=+0.0574 Delta_B=+0.2024 Sum=+0.2598 Delta_C=+0.0757 Departure=-0.1841 (sub-additive)
+
+
+========== LEARNER: XGBOOST | PRIMARY: Any ROP (48 events) ==========
+
+  --- Fixed-only (BWGT+GA) [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Longitudinal-only V1 (Avg_FiO2+Severe_Hypoxemia__) [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Mixed BWGT+GA + V1 [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+--- RESULTS: xgboost | any_rop | V1 ---
+Config      Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Fixed-only  Naive 10f      0.999  [0.998, 0.999]       +0.442  [+0.442, +0.443]
+            Subject 10f     0.542  [0.472, 0.605]       -0.014  [-0.085, +0.049]
+            LOCO           0.557  [0.443, 0.670]          ---  (reference)
+Longitudin  Naive 10f      0.698  [0.692, 0.704]       +0.079  [+0.072, +0.085]
+            Subject 10f     0.609  [0.569, 0.640]       -0.010  [-0.051, +0.021]
+            LOCO           0.619  [0.508, 0.730]          ---  (reference)
+Mixed BWGT  Naive 10f      0.999  [0.999, 1.000]       +0.438  [+0.438, +0.438]
+            Subject 10f     0.548  [0.455, 0.605]       -0.014  [-0.107, +0.044]
+            LOCO           0.561  [0.447, 0.675]          ---  (reference)
+
+  Additivity (V1): Delta_A=+0.4423 Delta_B=+0.0790 Sum=+0.5213 Delta_C=+0.4382 Departure=-0.0831 (sub-additive)
+
+  --- Longitudinal-only V2 (Avg_FiO2+Avg_SpO2) [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Mixed BWGT+GA + V2 [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+--- RESULTS: xgboost | any_rop | V2 ---
+Config      Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Fixed-only  Naive 10f      0.999  [0.998, 0.999]       +0.442  [+0.442, +0.443]
+            Subject 10f     0.542  [0.472, 0.605]       -0.014  [-0.085, +0.049]
+            LOCO           0.557  [0.443, 0.670]          ---  (reference)
+Longitudin  Naive 10f      0.688  [0.682, 0.695]       +0.073  [+0.067, +0.080]
+            Subject 10f     0.603  [0.554, 0.642]       -0.013  [-0.062, +0.026]
+            LOCO           0.616  [0.504, 0.727]          ---  (reference)
+Mixed BWGT  Naive 10f      1.000  [0.999, 1.000]       +0.442  [+0.442, +0.443]
+            Subject 10f     0.547  [0.466, 0.606]       -0.010  [-0.092, +0.048]
+            LOCO           0.557  [0.443, 0.672]          ---  (reference)
+
+  Additivity (V2): Delta_A=+0.4423 Delta_B=+0.0728 Sum=+0.5151 Delta_C=+0.4422 Departure=-0.0729 (sub-additive)
+
+  --- Longitudinal-only V3 (Avg_FiO2+Avg_SpO2+Severe_Hypoxemia__) [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Mixed BWGT+GA + V3 [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+--- RESULTS: xgboost | any_rop | V3 ---
+Config      Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Fixed-only  Naive 10f      0.999  [0.998, 0.999]       +0.442  [+0.442, +0.443]
+            Subject 10f     0.542  [0.472, 0.605]       -0.014  [-0.085, +0.049]
+            LOCO           0.557  [0.443, 0.670]          ---  (reference)
+Longitudin  Naive 10f      0.713  [0.708, 0.718]       +0.091  [+0.086, +0.096]
+            Subject 10f     0.605  [0.550, 0.641]       -0.017  [-0.072, +0.019]
+            LOCO           0.622  [0.511, 0.733]          ---  (reference)
+Mixed BWGT  Naive 10f      1.000  [0.999, 1.000]       +0.443  [+0.443, +0.444]
+            Subject 10f     0.547  [0.464, 0.605]       -0.009  [-0.092, +0.049]
+            LOCO           0.556  [0.442, 0.671]          ---  (reference)
+
+  Additivity (V3): Delta_A=+0.4423 Delta_B=+0.0907 Sum=+0.5330 Delta_C=+0.4433 Departure=-0.0897 (sub-additive)
+
+
+========== LEARNER: XGBOOST | SECONDARY: Severe ROP (15 events; caution -- unstable, see header) ==========
+
+  --- Fixed-only (BWGT+GA) [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Longitudinal-only V1 (Avg_FiO2+Severe_Hypoxemia__) [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Mixed BWGT+GA + V1 [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+--- RESULTS: xgboost | severe_rop | V1 ---
+Config      Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Fixed-only  Naive 10f      1.000  [1.000, 1.000]       +0.350  [+0.350, +0.350]
+            Subject 10f     0.639  [0.577, 0.697]       -0.011  [-0.074, +0.047]
+            LOCO           0.650  [0.522, 0.779]          ---  (reference)
+Longitudin  Naive 10f      0.745  [0.737, 0.754]       +0.152  [+0.144, +0.161]
+            Subject 10f     0.591  [0.525, 0.651]       -0.002  [-0.068, +0.058]
+            LOCO           0.593  [0.458, 0.728]          ---  (reference)
+Mixed BWGT  Naive 10f      1.000  [1.000, 1.000]       +0.375  [+0.375, +0.375]
+            Subject 10f     0.637  [0.566, 0.680]       +0.012  [-0.059, +0.055]
+            LOCO           0.625  [0.479, 0.771]          ---  (reference)
+
+  Additivity (V1): Delta_A=+0.3496 Delta_B=+0.1520 Sum=+0.5016 Delta_C=+0.3752 Departure=-0.1264 (sub-additive)
+
+  --- Longitudinal-only V2 (Avg_FiO2+Avg_SpO2) [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Mixed BWGT+GA + V2 [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+--- RESULTS: xgboost | severe_rop | V2 ---
+Config      Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Fixed-only  Naive 10f      1.000  [1.000, 1.000]       +0.350  [+0.350, +0.350]
+            Subject 10f     0.639  [0.577, 0.697]       -0.011  [-0.074, +0.047]
+            LOCO           0.650  [0.522, 0.779]          ---  (reference)
+Longitudin  Naive 10f      0.725  [0.716, 0.737]       +0.134  [+0.124, +0.145]
+            Subject 10f     0.585  [0.509, 0.645]       -0.006  [-0.083, +0.053]
+            LOCO           0.591  [0.454, 0.729]          ---  (reference)
+Mixed BWGT  Naive 10f      1.000  [1.000, 1.000]       +0.381  [+0.381, +0.381]
+            Subject 10f     0.638  [0.560, 0.680]       +0.019  [-0.059, +0.061]
+            LOCO           0.619  [0.475, 0.764]          ---  (reference)
+
+  Additivity (V2): Delta_A=+0.3496 Delta_B=+0.1337 Sum=+0.4833 Delta_C=+0.3806 Departure=-0.1027 (sub-additive)
+
+  --- Longitudinal-only V3 (Avg_FiO2+Avg_SpO2+Severe_Hypoxemia__) [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Mixed BWGT+GA + V3 [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+--- RESULTS: xgboost | severe_rop | V3 ---
+Config      Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Fixed-only  Naive 10f      1.000  [1.000, 1.000]       +0.350  [+0.350, +0.350]
+            Subject 10f     0.639  [0.577, 0.697]       -0.011  [-0.074, +0.047]
+            LOCO           0.650  [0.522, 0.779]          ---  (reference)
+Longitudin  Naive 10f      0.764  [0.753, 0.775]       +0.164  [+0.152, +0.174]
+            Subject 10f     0.603  [0.525, 0.665]       +0.002  [-0.076, +0.064]
+            LOCO           0.601  [0.457, 0.745]          ---  (reference)
+Mixed BWGT  Naive 10f      1.000  [1.000, 1.000]       +0.380  [+0.380, +0.380]
+            Subject 10f     0.637  [0.564, 0.679]       +0.017  [-0.056, +0.059]
+            LOCO           0.620  [0.476, 0.764]          ---  (reference)
+
+  Additivity (V3): Delta_A=+0.3496 Delta_B=+0.1635 Sum=+0.5131 Delta_C=+0.3798 Departure=-0.1333 (sub-additive)
+
+
+Tier 2 analysis complete: 2026-07-02 20:12:31.165159
+Output saved to: C:/Users/jlhagan/OneDrive - Texas Children's/WSS-onedrive-migration/Desktop/MY NOTES/1st author papers/mixed predictors/ROP analysis/results/rop_tier2_sensitivity_2026-07-02.txt
+
+Reminder: V3 (p_L = 3) is not a matched Arm C condition; report V1/V2
+as the matched-condition comparators and V3 as a supplementary check only.

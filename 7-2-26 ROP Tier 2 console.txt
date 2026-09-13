@@ -1,0 +1,702 @@
+> ###############################################################################
+> # rop_tier2_sensitivity_analysis.R
+> #
+> # Tier 2 Sensitivity Illustration: Minimal Fixed-Predictor Set Matched to a
+> # Simulated Arm C Condition, Evaluated Across Three Longitudinal Predictor
+> # Variants and Two Learners (Ridge, XGBoost)
+> #
+> # Fixed set: BWGT + GA only (p_F = 2, continuous only; avoids the
+> #   categorical/continuous type mismatch present in the Tier 1 8-predictor
+> #   fixed set). BWGT + GA alone uniquely identify all 100 subjects (Section
+> #   3.6), so this isolates identity-mediated leakage in a minimal,
+> #   EPV-favorable model.
+> #
+> # Longitudinal variants:
+> #   V1: Avg_FiO2 + Severe_Hypoxemia__            (p_L = 2; matches simulated
+> #       Arm C condition (p_F, p_L) = (2, 2))
+> #   V2: Avg_FiO2 + Avg_SpO2                      (p_L = 2; matches (2, 2))
+> #   V3: Avg_FiO2 + Avg_SpO2 + Severe_Hypoxemia__ (p_L = 3; NOT a simulated
+> #       Arm C combination. Included as an additional robustness check only.
+> #       Do not present as a matched-condition comparator if used in the
+> #       manuscript.)
+> #
+> # Learners:
+> #   Ridge logistic regression, fixed lambda = log(1 + 1/n) / n (n = subjects),
+> #     matching Tier 1 and the simulation.
+> #   XGBoost, max_depth = 4, eta = 0.1, nrounds = 50, matching the simulation
+> #     (Section 2.3). Fit at the row level; subject-level predicted
+> #     probability obtained by averaging within-subject row predictions.
+> #
+> # CV strategies: naive 10-fold, subject-level 10-fold, LOCO (all three, for
+> #   both learners, consistent with Tier 1).
+> # Outcomes: any_rop (primary, 48 events), severe_rop (secondary, 15 events).
+> #
+> # CAUTION: XGBoost LOCO for severe_rop is expected to be unstable (15 events,
+> # 100 subjects); point estimates and DeLong CIs may be wide. Computed
+> # regardless; frame the interpretation accordingly if reported.
+> #
+> # Author: Joseph L. Hagan, ScD, MSPH
+> # Section of Neonatology, Baylor College of Medicine
+> ###############################################################################
+> 
+> library(glmnet)
+Loading required package: Matrix
+Loaded glmnet 5.0
+> library(xgboost)
+> library(pROC)
+Type 'citation("pROC")' for a citation.
+
+Attaching package: ‘pROC’
+
+The following objects are masked from ‘package:stats’:
+
+    cov, smooth, var
+
+> 
+> # =============================================================================
+> # USER SETTINGS
+> # =============================================================================
+> 
+> DATA_FILE  <- "C:/Users/jlhagan/OneDrive - Texas Children's/WSS-onedrive-migration/Desktop/MY NOTES/1st author papers/mixed predictors/ROP analysis/R code/final daily data.csv"
+> OUTPUT_DIR <- "C:/Users/jlhagan/OneDrive - Texas Children's/WSS-onedrive-migration/Desktop/MY NOTES/1st author papers/mixed predictors/ROP analysis/results"
+> 
+> N_REPS  <- 50   # CV fold assignment replications (naive and subject CV)
+> K_FOLDS <- 10
+> 
+> if (!file.exists(DATA_FILE))
++   stop(sprintf("Data file not found: %s", DATA_FILE))
+> if (!dir.exists(OUTPUT_DIR)) dir.create(OUTPUT_DIR, recursive = TRUE)
+> 
+> output_file <- file.path(OUTPUT_DIR,
++   paste0("rop_tier2_sensitivity_", format(Sys.Date(), "%Y-%m-%d"), ".txt"))
+> sink(output_file, split = TRUE)
+> on.exit(sink(), add = TRUE)
+> cat(sprintf("ROP Tier 2 Sensitivity Analysis\n%s\n\n", Sys.time()))
+ROP Tier 2 Sensitivity Analysis
+2026-07-02 19:53:19.91912
+
+> 
+> # =============================================================================
+> # 1. DATA PREPARATION (mirrors rop_mixed_predictor_analysis.R)
+> # =============================================================================
+> 
+> raw <- read.csv(DATA_FILE, stringsAsFactors = FALSE)
+> 
+> fixed_reduced <- c("BWGT", "GA")
+> 
+> long_variants <- list(
++   V1 = c("Avg_FiO2", "Severe_Hypoxemia__"),                    # matches (2,2)
++   V2 = c("Avg_FiO2", "Avg_SpO2"),                               # matches (2,2)
++   V3 = c("Avg_FiO2", "Avg_SpO2", "Severe_Hypoxemia__")          # p_L = 3, unmatched
++ )
+> 
+> all_vars_needed <- unique(c(fixed_reduced, unlist(long_variants)))
+> 
+> cc  <- complete.cases(raw[, all_vars_needed])
+> dat <- raw[cc, ]
+> cat(sprintf("Rows after complete-case restriction: %d (%d excluded)\n",
++             nrow(dat), sum(!cc)))
+Rows after complete-case restriction: 5620 (133 excluded)
+> cat(sprintf("Subjects: %d\n", length(unique(dat$Case_ID))))
+Subjects: 101
+> 
+> dat$any_rop    <- as.integer(dat$ROP >= 1)
+> dat$severe_rop <- as.integer(dat$ROP == 2)
+> 
+> n_subj <- length(unique(dat$Case_ID))
+> cat(sprintf("\nPrimary outcome (any ROP):      %d events / %d subjects (%.1f%%)\n",
++             sum(tapply(dat$any_rop, dat$Case_ID, max)), n_subj,
++             100 * mean(tapply(dat$any_rop, dat$Case_ID, max))))
+
+Primary outcome (any ROP):      48 events / 101 subjects (47.5%)
+> cat(sprintf("Secondary outcome (severe ROP): %d events / %d subjects (%.1f%%)\n",
++             sum(tapply(dat$severe_rop, dat$Case_ID, max)), n_subj,
++             100 * mean(tapply(dat$severe_rop, dat$Case_ID, max))))
+Secondary outcome (severe ROP): 15 events / 101 subjects (14.9%)
+> 
+> # Confirm BWGT x GA uniqueness in this complete-case subset (should match
+> # Tier 1's reported 100%; complete-case set may differ slightly by variant).
+> key_raw <- paste(dat$BWGT[!duplicated(dat$Case_ID)],
++                   dat$GA[!duplicated(dat$Case_ID)], sep = "_")
+> cat(sprintf("Raw BWGT x GA: %.1f%% of subjects uniquely identified\n",
++             100 * mean(table(key_raw) == 1L)))
+Raw BWGT x GA: 100.0% of subjects uniquely identified
+> 
+> # =============================================================================
+> # 2. LEARNERS
+> # =============================================================================
+> 
+> fixed_lambda <- function(n_subj) log(1 + 1 / n_subj) / n_subj
+> 
+> # Ridge logistic regression. lam supplied by caller.
+> fit_ridge <- function(X_train, y_train, X_test, lam, n_subj = NULL) {
++   fit <- tryCatch(
++     glmnet(X_train, y_train, family = "binomial", alpha = 0,
++            lambda = lam, standardize = TRUE),
++     error = function(e) {
++       glmnet(X_train, y_train, family = "binomial", alpha = 0,
++              lambda = max(lam, 0.01), standardize = TRUE)
++     }
++   )
++   as.numeric(predict(fit, newx = X_test, s = fit$lambda[1L], type = "response"))
++ }
+> 
+> # XGBoost, hyperparameters fixed to match simulation Section 2.3.
+> # lam argument accepted but ignored, so fit_ridge and fit_xgb share a
+> # signature and can both be passed as fit_fn to the CV functions below.
+> fit_xgb <- function(X_train, y_train, X_test, lam = NULL, n_subj) {
++   mcw <- max(1L, floor(n_subj / 20))
++   dtr <- xgboost::xgb.DMatrix(data = X_train, label = y_train)
++   fit <- xgboost::xgb.train(
++     params  = list(objective = "binary:logistic", max_depth = 4, eta = 0.1,
++                     min_child_weight = mcw, nthread = 1),
++     data    = dtr,
++     nrounds = 50,
++     verbose = 0
++   )
++   as.numeric(predict(fit, X_test))
++ }
+> 
+> learners <- list(ridge = fit_ridge, xgboost = fit_xgb)
+> 
+> # =============================================================================
+> # 3. CV FUNCTIONS (generalized to accept any fit_fn)
+> # =============================================================================
+> 
+> row_to_subj_auroc <- function(case_ids, row_preds, row_y) {
++   subj_p <- tapply(row_preds, case_ids, mean)
++   subj_y <- tapply(row_y,    case_ids, function(x) x[1L])
++   subj_y <- subj_y[names(subj_p)]
++   if (length(unique(subj_y)) < 2L) return(NA_real_)
++   as.numeric(pROC::auc(pROC::roc(as.numeric(subj_y), as.numeric(subj_p),
++                                    quiet = TRUE)))
++ }
+> 
+> cv_naive <- function(X, y, case_ids, fit_fn, k = K_FOLDS, seed = 1L) {
++   set.seed(seed)
++   n       <- nrow(X)
++   lam     <- fixed_lambda(length(unique(case_ids)))
++   fold_id <- sample(rep(seq_len(k), length.out = n))
++   preds   <- rep(NA_real_, n)
++   for (f in seq_len(k)) {
++     tr <- fold_id != f; te <- fold_id == f
++     if (length(unique(y[tr])) < 2L) next
++     n_subj_f  <- length(unique(case_ids[tr]))
++     preds[te] <- fit_fn(X[tr, , drop = FALSE], y[tr], X[te, , drop = FALSE],
++                          lam, n_subj_f)
++   }
++   valid <- !is.na(preds)
++   row_to_subj_auroc(case_ids[valid], preds[valid], y[valid])
++ }
+> 
+> cv_subject <- function(X, y, case_ids, fit_fn, k = K_FOLDS, seed = 1L) {
++   set.seed(seed)
++   lam      <- fixed_lambda(length(unique(case_ids)))
++   subj_ids <- unique(case_ids)
++   n_s      <- length(subj_ids)
++   k_act    <- min(k, n_s)
++   fold_map <- setNames(rep(seq_len(k_act), length.out = n_s),
++                        subj_ids[sample(n_s)])
++   obs_fold <- fold_map[as.character(case_ids)]
++   preds    <- rep(NA_real_, nrow(X))
++   for (f in seq_len(k_act)) {
++     te <- which(obs_fold == f); tr <- which(obs_fold != f)
++     if (length(te) == 0L || length(unique(y[tr])) < 2L) next
++     n_subj_f  <- length(unique(case_ids[tr]))
++     preds[te] <- fit_fn(X[tr, , drop = FALSE], y[tr], X[te, , drop = FALSE],
++                          lam, n_subj_f)
++   }
++   valid <- !is.na(preds)
++   row_to_subj_auroc(case_ids[valid], preds[valid], y[valid])
++ }
+> 
+> cv_loco <- function(X, y, case_ids, fit_fn) {
++   lam      <- fixed_lambda(length(unique(case_ids)))
++   subj_ids <- unique(case_ids)
++   subj_p   <- setNames(numeric(length(subj_ids)), subj_ids)
++   for (id in subj_ids) {
++     te <- which(case_ids == id); tr <- which(case_ids != id)
++     if (length(unique(y[tr])) < 2L) { subj_p[as.character(id)] <- 0.5; next }
++     n_subj_f <- length(unique(case_ids[tr]))
++     subj_p[as.character(id)] <- mean(
++       fit_fn(X[tr, , drop = FALSE], y[tr], X[te, , drop = FALSE],
++              lam, n_subj_f))
++   }
++   subj_y <- tapply(y, case_ids, function(x) x[1L])
++   subj_y <- subj_y[names(subj_p)]
++   if (length(unique(subj_y)) < 2L) return(list(auc = NA_real_, roc = NULL))
++   roc_obj <- pROC::roc(as.numeric(subj_y), as.numeric(subj_p), quiet = TRUE)
++   list(auc = as.numeric(pROC::auc(roc_obj)), roc = roc_obj)
++ }
+> 
+> # =============================================================================
+> # 4. RUN ONE (predictor set x learner x outcome) CONFIGURATION
+> # =============================================================================
+> 
+> run_config <- function(dat, outcome_var, pred_cols, config_label, fit_fn,
++                        n_reps = N_REPS, k = K_FOLDS) {
++ 
++   cat(sprintf("\n  --- %s ---\n", config_label))
++ 
++   X        <- as.matrix(dat[, pred_cols, drop = FALSE])
++   y        <- dat[[outcome_var]]
++   case_ids <- dat$Case_ID
++ 
++   cat("    Naive CV...")
++   naive_aucs <- sapply(seq_len(n_reps), function(r)
++     cv_naive(X, y, case_ids, fit_fn, k = k, seed = r))
++   cat(" done\n")
++ 
++   cat("    Subject CV...")
++   subj_aucs <- sapply(seq_len(n_reps), function(r)
++     cv_subject(X, y, case_ids, fit_fn, k = k, seed = r))
++   cat(" done\n")
++ 
++   cat("    LOCO CV...")
++   loco_res <- cv_loco(X, y, case_ids, fit_fn)
++   loco_auc <- loco_res$auc
++   loco_ci  <- if (!is.null(loco_res$roc))
++                 as.numeric(pROC::ci.auc(loco_res$roc, method = "delong"))
++               else c(NA, NA, NA)
++   cat(" done\n")
++ 
++   naive_opt <- naive_aucs - loco_auc
++   subj_dev  <- subj_aucs  - loco_auc
++ 
++   list(
++     config         = config_label,
++     naive_aucs     = naive_aucs,
++     subj_aucs      = subj_aucs,
++     loco_auc       = loco_auc,
++     loco_ci        = loco_ci,
++     naive_opt      = naive_opt,
++     subj_dev       = subj_dev,
++     mean_naive     = mean(naive_aucs, na.rm = TRUE),
++     mean_subj      = mean(subj_aucs,  na.rm = TRUE),
++     mean_naive_opt = mean(naive_opt,  na.rm = TRUE),
++     mean_subj_dev  = mean(subj_dev,   na.rm = TRUE),
++     pi_naive       = quantile(naive_aucs, c(0.025, 0.975), na.rm = TRUE),
++     pi_subj        = quantile(subj_aucs,  c(0.025, 0.975), na.rm = TRUE),
++     pi_naive_opt   = quantile(naive_opt,  c(0.025, 0.975), na.rm = TRUE),
++     pi_subj_dev    = quantile(subj_dev,   c(0.025, 0.975), na.rm = TRUE)
++   )
++ }
+> 
+> # =============================================================================
+> # 5. RUN ALL (variant x learner x outcome) COMBINATIONS
+> #
+> # Fixed-only (BWGT+GA) does not depend on the longitudinal variant, so it is
+> # computed once per learner/outcome and reused across variants, matching the
+> # "matched Arm A component" for the additivity check under each variant.
+> # =============================================================================
+> 
+> outcomes <- list(
++   any_rop    = "PRIMARY: Any ROP (48 events)",
++   severe_rop = "SECONDARY: Severe ROP (15 events; caution -- unstable, see header)"
++ )
+> 
+> results <- list()  # results[[learner]][[outcome]][[variant]] = list(A=, B=, C=)
+> 
+> for (lrn_name in names(learners)) {
++   fit_fn <- learners[[lrn_name]]
++   results[[lrn_name]] <- list()
++ 
++   for (out_name in names(outcomes)) {
++     cat(sprintf("\n\n========== LEARNER: %s | %s ==========\n",
++                 toupper(lrn_name), outcomes[[out_name]]))
++ 
++     res_A <- run_config(dat, out_name, fixed_reduced,
++                         sprintf("Fixed-only (BWGT+GA) [%s]", lrn_name), fit_fn)
++ 
++     results[[lrn_name]][[out_name]] <- list()
++ 
++     for (v_name in names(long_variants)) {
++       long_cols  <- long_variants[[v_name]]
++       mixed_cols <- c(fixed_reduced, long_cols)
++ 
++       res_B <- run_config(dat, out_name, long_cols,
++                           sprintf("Longitudinal-only %s (%s) [%s]",
++                                   v_name, paste(long_cols, collapse = "+"), lrn_name),
++                           fit_fn)
++       res_C <- run_config(dat, out_name, mixed_cols,
++                           sprintf("Mixed BWGT+GA + %s [%s]", v_name, lrn_name),
++                           fit_fn)
++ 
++       results[[lrn_name]][[out_name]][[v_name]] <- list(A = res_A, B = res_B, C = res_C)
++ 
++       # ---- results table ----
++       cat(sprintf("\n--- RESULTS: %s | %s | %s ---\n", lrn_name, out_name, v_name))
++       cat(sprintf("%-10s  %-10s  %-8s  %-18s  %-10s  %-18s\n",
++                   "Config", "Strategy", "AUROC", "95% PI/CI", "Optimism", "95% PI"))
++       cat(paste(rep("-", 90), collapse = ""), "\n")
++       for (res in list(res_A, res_B, res_C)) {
++         cat(sprintf("%-10s  %-10s  %8.3f  [%5.3f, %5.3f]   %+10.3f  [%+.3f, %+.3f]\n",
++                     substr(res$config, 1, 10), "Naive 10f",
++                     res$mean_naive, res$pi_naive[1], res$pi_naive[2],
++                     res$mean_naive_opt, res$pi_naive_opt[1], res$pi_naive_opt[2]))
++         cat(sprintf("%-10s  %-10s  %8.3f  [%5.3f, %5.3f]   %+10.3f  [%+.3f, %+.3f]\n",
++                     "", "Subject 10f",
++                     res$mean_subj, res$pi_subj[1], res$pi_subj[2],
++                     res$mean_subj_dev, res$pi_subj_dev[1], res$pi_subj_dev[2]))
++         cat(sprintf("%-10s  %-10s  %8.3f  [%5.3f, %5.3f]   %10s  (reference)\n",
++                     "", "LOCO", res$loco_auc, res$loco_ci[1], res$loco_ci[3], "---"))
++       }
++ 
++       # ---- additivity check ----
++       delta_A <- res_A$mean_naive_opt
++       delta_B <- res_B$mean_naive_opt
++       delta_C <- res_C$mean_naive_opt
++       additive  <- delta_A + delta_B
++       departure <- delta_C - additive
++       cat(sprintf("\n  Additivity (%s): Delta_A=%+.4f Delta_B=%+.4f Sum=%+.4f Delta_C=%+.4f Departure=%+.4f (%s)\n",
++                   v_name, delta_A, delta_B, additive, delta_C, departure,
++                   ifelse(abs(departure) < 0.01, "consistent with additivity",
++                          ifelse(departure > 0, "super-additive", "sub-additive"))))
++     }
++   }
++ }
+
+
+========== LEARNER: RIDGE | PRIMARY: Any ROP (48 events) ==========
+
+  --- Fixed-only (BWGT+GA) [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Longitudinal-only V1 (Avg_FiO2+Severe_Hypoxemia__) [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Mixed BWGT+GA + V1 [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+--- RESULTS: ridge | any_rop | V1 ---
+Config      Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Fixed-only  Naive 10f      0.657  [0.656, 0.658]       +0.048  [+0.047, +0.049]
+            Subject 10f     0.607  [0.586, 0.628]       -0.002  [-0.023, +0.018]
+            LOCO           0.609  [0.497, 0.722]          ---  (reference)
+Longitudin  Naive 10f      0.680  [0.678, 0.682]       +0.080  [+0.078, +0.082]
+            Subject 10f     0.583  [0.528, 0.635]       -0.018  [-0.072, +0.035]
+            LOCO           0.600  [0.488, 0.713]          ---  (reference)
+Mixed BWGT  Naive 10f      0.683  [0.682, 0.684]       +0.057  [+0.056, +0.058]
+            Subject 10f     0.623  [0.595, 0.643]       -0.003  [-0.030, +0.018]
+            LOCO           0.625  [0.514, 0.736]          ---  (reference)
+
+  Additivity (V1): Delta_A=+0.0481 Delta_B=+0.0797 Sum=+0.1278 Delta_C=+0.0571 Departure=-0.0707 (sub-additive)
+
+  --- Longitudinal-only V2 (Avg_FiO2+Avg_SpO2) [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Mixed BWGT+GA + V2 [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+--- RESULTS: ridge | any_rop | V2 ---
+Config      Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Fixed-only  Naive 10f      0.657  [0.656, 0.658]       +0.048  [+0.047, +0.049]
+            Subject 10f     0.607  [0.586, 0.628]       -0.002  [-0.023, +0.018]
+            LOCO           0.609  [0.497, 0.722]          ---  (reference)
+Longitudin  Naive 10f      0.667  [0.664, 0.669]       +0.064  [+0.061, +0.066]
+            Subject 10f     0.587  [0.512, 0.639]       -0.016  [-0.091, +0.036]
+            LOCO           0.603  [0.491, 0.715]          ---  (reference)
+Mixed BWGT  Naive 10f      0.688  [0.688, 0.689]       +0.065  [+0.064, +0.066]
+            Subject 10f     0.624  [0.599, 0.647]       +0.001  [-0.024, +0.024]
+            LOCO           0.624  [0.513, 0.735]          ---  (reference)
+
+  Additivity (V2): Delta_A=+0.0481 Delta_B=+0.0638 Sum=+0.1119 Delta_C=+0.0646 Departure=-0.0473 (sub-additive)
+
+  --- Longitudinal-only V3 (Avg_FiO2+Avg_SpO2+Severe_Hypoxemia__) [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Mixed BWGT+GA + V3 [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+--- RESULTS: ridge | any_rop | V3 ---
+Config      Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Fixed-only  Naive 10f      0.657  [0.656, 0.658]       +0.048  [+0.047, +0.049]
+            Subject 10f     0.607  [0.586, 0.628]       -0.002  [-0.023, +0.018]
+            LOCO           0.609  [0.497, 0.722]          ---  (reference)
+Longitudin  Naive 10f      0.663  [0.660, 0.664]       +0.069  [+0.067, +0.071]
+            Subject 10f     0.576  [0.511, 0.624]       -0.017  [-0.082, +0.031]
+            LOCO           0.594  [0.482, 0.705]          ---  (reference)
+Mixed BWGT  Naive 10f      0.692  [0.690, 0.693]       +0.070  [+0.069, +0.072]
+            Subject 10f     0.624  [0.598, 0.644]       +0.003  [-0.023, +0.023]
+            LOCO           0.621  [0.510, 0.732]          ---  (reference)
+
+  Additivity (V3): Delta_A=+0.0481 Delta_B=+0.0692 Sum=+0.1173 Delta_C=+0.0705 Departure=-0.0468 (sub-additive)
+
+
+========== LEARNER: RIDGE | SECONDARY: Severe ROP (15 events; caution -- unstable, see header) ==========
+
+  --- Fixed-only (BWGT+GA) [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Longitudinal-only V1 (Avg_FiO2+Severe_Hypoxemia__) [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Mixed BWGT+GA + V1 [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+--- RESULTS: ridge | severe_rop | V1 ---
+Config      Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Fixed-only  Naive 10f      0.705  [0.704, 0.707]       +0.057  [+0.056, +0.059]
+            Subject 10f     0.649  [0.612, 0.681]       +0.001  [-0.036, +0.032]
+            LOCO           0.648  [0.487, 0.809]          ---  (reference)
+Longitudin  Naive 10f      0.701  [0.698, 0.704]       +0.172  [+0.168, +0.175]
+            Subject 10f     0.541  [0.450, 0.614]       +0.012  [-0.079, +0.085]
+            LOCO           0.529  [0.369, 0.690]          ---  (reference)
+Mixed BWGT  Naive 10f      0.728  [0.726, 0.729]       +0.071  [+0.070, +0.073]
+            Subject 10f     0.653  [0.604, 0.691]       -0.004  [-0.052, +0.034]
+            LOCO           0.657  [0.494, 0.819]          ---  (reference)
+
+  Additivity (V1): Delta_A=+0.0574 Delta_B=+0.1719 Sum=+0.2293 Delta_C=+0.0712 Departure=-0.1581 (sub-additive)
+
+  --- Longitudinal-only V2 (Avg_FiO2+Avg_SpO2) [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Mixed BWGT+GA + V2 [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+--- RESULTS: ridge | severe_rop | V2 ---
+Config      Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Fixed-only  Naive 10f      0.705  [0.704, 0.707]       +0.057  [+0.056, +0.059]
+            Subject 10f     0.649  [0.612, 0.681]       +0.001  [-0.036, +0.032]
+            LOCO           0.648  [0.487, 0.809]          ---  (reference)
+Longitudin  Naive 10f      0.681  [0.677, 0.684]       +0.167  [+0.164, +0.171]
+            Subject 10f     0.535  [0.460, 0.606]       +0.022  [-0.053, +0.093]
+            LOCO           0.513  [0.367, 0.660]          ---  (reference)
+Mixed BWGT  Naive 10f      0.733  [0.730, 0.735]       +0.073  [+0.071, +0.075]
+            Subject 10f     0.654  [0.606, 0.690]       -0.005  [-0.054, +0.030]
+            LOCO           0.660  [0.498, 0.821]          ---  (reference)
+
+  Additivity (V2): Delta_A=+0.0574 Delta_B=+0.1674 Sum=+0.2247 Delta_C=+0.0732 Departure=-0.1516 (sub-additive)
+
+  --- Longitudinal-only V3 (Avg_FiO2+Avg_SpO2+Severe_Hypoxemia__) [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Mixed BWGT+GA + V3 [ridge] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+--- RESULTS: ridge | severe_rop | V3 ---
+Config      Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Fixed-only  Naive 10f      0.705  [0.704, 0.707]       +0.057  [+0.056, +0.059]
+            Subject 10f     0.649  [0.612, 0.681]       +0.001  [-0.036, +0.032]
+            LOCO           0.648  [0.487, 0.809]          ---  (reference)
+Longitudin  Naive 10f      0.697  [0.692, 0.702]       +0.202  [+0.197, +0.207]
+            Subject 10f     0.534  [0.455, 0.609]       +0.040  [-0.039, +0.114]
+            LOCO           0.495  [0.343, 0.646]          ---  (reference)
+Mixed BWGT  Naive 10f      0.731  [0.729, 0.732]       +0.076  [+0.074, +0.077]
+            Subject 10f     0.650  [0.603, 0.686]       -0.005  [-0.053, +0.031]
+            LOCO           0.655  [0.494, 0.816]          ---  (reference)
+
+  Additivity (V3): Delta_A=+0.0574 Delta_B=+0.2024 Sum=+0.2598 Delta_C=+0.0757 Departure=-0.1841 (sub-additive)
+
+
+========== LEARNER: XGBOOST | PRIMARY: Any ROP (48 events) ==========
+
+  --- Fixed-only (BWGT+GA) [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Longitudinal-only V1 (Avg_FiO2+Severe_Hypoxemia__) [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Mixed BWGT+GA + V1 [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+--- RESULTS: xgboost | any_rop | V1 ---
+Config      Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Fixed-only  Naive 10f      0.999  [0.998, 0.999]       +0.442  [+0.442, +0.443]
+            Subject 10f     0.542  [0.472, 0.605]       -0.014  [-0.085, +0.049]
+            LOCO           0.557  [0.443, 0.670]          ---  (reference)
+Longitudin  Naive 10f      0.698  [0.692, 0.704]       +0.079  [+0.072, +0.085]
+            Subject 10f     0.609  [0.569, 0.640]       -0.010  [-0.051, +0.021]
+            LOCO           0.619  [0.508, 0.730]          ---  (reference)
+Mixed BWGT  Naive 10f      0.999  [0.999, 1.000]       +0.438  [+0.438, +0.438]
+            Subject 10f     0.548  [0.455, 0.605]       -0.014  [-0.107, +0.044]
+            LOCO           0.561  [0.447, 0.675]          ---  (reference)
+
+  Additivity (V1): Delta_A=+0.4423 Delta_B=+0.0790 Sum=+0.5213 Delta_C=+0.4382 Departure=-0.0831 (sub-additive)
+
+  --- Longitudinal-only V2 (Avg_FiO2+Avg_SpO2) [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Mixed BWGT+GA + V2 [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+--- RESULTS: xgboost | any_rop | V2 ---
+Config      Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Fixed-only  Naive 10f      0.999  [0.998, 0.999]       +0.442  [+0.442, +0.443]
+            Subject 10f     0.542  [0.472, 0.605]       -0.014  [-0.085, +0.049]
+            LOCO           0.557  [0.443, 0.670]          ---  (reference)
+Longitudin  Naive 10f      0.688  [0.682, 0.695]       +0.073  [+0.067, +0.080]
+            Subject 10f     0.603  [0.554, 0.642]       -0.013  [-0.062, +0.026]
+            LOCO           0.616  [0.504, 0.727]          ---  (reference)
+Mixed BWGT  Naive 10f      1.000  [0.999, 1.000]       +0.442  [+0.442, +0.443]
+            Subject 10f     0.547  [0.466, 0.606]       -0.010  [-0.092, +0.048]
+            LOCO           0.557  [0.443, 0.672]          ---  (reference)
+
+  Additivity (V2): Delta_A=+0.4423 Delta_B=+0.0728 Sum=+0.5151 Delta_C=+0.4422 Departure=-0.0729 (sub-additive)
+
+  --- Longitudinal-only V3 (Avg_FiO2+Avg_SpO2+Severe_Hypoxemia__) [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Mixed BWGT+GA + V3 [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+--- RESULTS: xgboost | any_rop | V3 ---
+Config      Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Fixed-only  Naive 10f      0.999  [0.998, 0.999]       +0.442  [+0.442, +0.443]
+            Subject 10f     0.542  [0.472, 0.605]       -0.014  [-0.085, +0.049]
+            LOCO           0.557  [0.443, 0.670]          ---  (reference)
+Longitudin  Naive 10f      0.713  [0.708, 0.718]       +0.091  [+0.086, +0.096]
+            Subject 10f     0.605  [0.550, 0.641]       -0.017  [-0.072, +0.019]
+            LOCO           0.622  [0.511, 0.733]          ---  (reference)
+Mixed BWGT  Naive 10f      1.000  [0.999, 1.000]       +0.443  [+0.443, +0.444]
+            Subject 10f     0.547  [0.464, 0.605]       -0.009  [-0.092, +0.049]
+            LOCO           0.556  [0.442, 0.671]          ---  (reference)
+
+  Additivity (V3): Delta_A=+0.4423 Delta_B=+0.0907 Sum=+0.5330 Delta_C=+0.4433 Departure=-0.0897 (sub-additive)
+
+
+========== LEARNER: XGBOOST | SECONDARY: Severe ROP (15 events; caution -- unstable, see header) ==========
+
+  --- Fixed-only (BWGT+GA) [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Longitudinal-only V1 (Avg_FiO2+Severe_Hypoxemia__) [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Mixed BWGT+GA + V1 [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+--- RESULTS: xgboost | severe_rop | V1 ---
+Config      Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Fixed-only  Naive 10f      1.000  [1.000, 1.000]       +0.350  [+0.350, +0.350]
+            Subject 10f     0.639  [0.577, 0.697]       -0.011  [-0.074, +0.047]
+            LOCO           0.650  [0.522, 0.779]          ---  (reference)
+Longitudin  Naive 10f      0.745  [0.737, 0.754]       +0.152  [+0.144, +0.161]
+            Subject 10f     0.591  [0.525, 0.651]       -0.002  [-0.068, +0.058]
+            LOCO           0.593  [0.458, 0.728]          ---  (reference)
+Mixed BWGT  Naive 10f      1.000  [1.000, 1.000]       +0.375  [+0.375, +0.375]
+            Subject 10f     0.637  [0.566, 0.680]       +0.012  [-0.059, +0.055]
+            LOCO           0.625  [0.479, 0.771]          ---  (reference)
+
+  Additivity (V1): Delta_A=+0.3496 Delta_B=+0.1520 Sum=+0.5016 Delta_C=+0.3752 Departure=-0.1264 (sub-additive)
+
+  --- Longitudinal-only V2 (Avg_FiO2+Avg_SpO2) [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Mixed BWGT+GA + V2 [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+--- RESULTS: xgboost | severe_rop | V2 ---
+Config      Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Fixed-only  Naive 10f      1.000  [1.000, 1.000]       +0.350  [+0.350, +0.350]
+            Subject 10f     0.639  [0.577, 0.697]       -0.011  [-0.074, +0.047]
+            LOCO           0.650  [0.522, 0.779]          ---  (reference)
+Longitudin  Naive 10f      0.725  [0.716, 0.737]       +0.134  [+0.124, +0.145]
+            Subject 10f     0.585  [0.509, 0.645]       -0.006  [-0.083, +0.053]
+            LOCO           0.591  [0.454, 0.729]          ---  (reference)
+Mixed BWGT  Naive 10f      1.000  [1.000, 1.000]       +0.381  [+0.381, +0.381]
+            Subject 10f     0.638  [0.560, 0.680]       +0.019  [-0.059, +0.061]
+            LOCO           0.619  [0.475, 0.764]          ---  (reference)
+
+  Additivity (V2): Delta_A=+0.3496 Delta_B=+0.1337 Sum=+0.4833 Delta_C=+0.3806 Departure=-0.1027 (sub-additive)
+
+  --- Longitudinal-only V3 (Avg_FiO2+Avg_SpO2+Severe_Hypoxemia__) [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+  --- Mixed BWGT+GA + V3 [xgboost] ---
+    Naive CV... done
+    Subject CV... done
+    LOCO CV... done
+
+--- RESULTS: xgboost | severe_rop | V3 ---
+Config      Strategy    AUROC     95% PI/CI           Optimism    95% PI            
+------------------------------------------------------------------------------------------ 
+Fixed-only  Naive 10f      1.000  [1.000, 1.000]       +0.350  [+0.350, +0.350]
+            Subject 10f     0.639  [0.577, 0.697]       -0.011  [-0.074, +0.047]
+            LOCO           0.650  [0.522, 0.779]          ---  (reference)
+Longitudin  Naive 10f      0.764  [0.753, 0.775]       +0.164  [+0.152, +0.174]
+            Subject 10f     0.603  [0.525, 0.665]       +0.002  [-0.076, +0.064]
+            LOCO           0.601  [0.457, 0.745]          ---  (reference)
+Mixed BWGT  Naive 10f      1.000  [1.000, 1.000]       +0.380  [+0.380, +0.380]
+            Subject 10f     0.637  [0.564, 0.679]       +0.017  [-0.056, +0.059]
+            LOCO           0.620  [0.476, 0.764]          ---  (reference)
+
+  Additivity (V3): Delta_A=+0.3496 Delta_B=+0.1635 Sum=+0.5131 Delta_C=+0.3798 Departure=-0.1333 (sub-additive)
+> 
+> cat(sprintf("\n\nTier 2 analysis complete: %s\n", Sys.time()))
+
+
+Tier 2 analysis complete: 2026-07-02 20:12:31.165159
+> cat(sprintf("Output saved to: %s\n", output_file))
+Output saved to: C:/Users/jlhagan/OneDrive - Texas Children's/WSS-onedrive-migration/Desktop/MY NOTES/1st author papers/mixed predictors/ROP analysis/results/rop_tier2_sensitivity_2026-07-02.txt
+> cat("\nReminder: V3 (p_L = 3) is not a matched Arm C condition; report V1/V2\n")
+
+Reminder: V3 (p_L = 3) is not a matched Arm C condition; report V1/V2
+> cat("as the matched-condition comparators and V3 as a supplementary check only.\n")
+as the matched-condition comparators and V3 as a supplementary check only.
+> 
