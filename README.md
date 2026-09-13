@@ -2,7 +2,7 @@
 
 **Simulation code and empirical analysis for:**
 
-> Hagan JL. Identity-mediated leakage in naive cross-validation of clinical prediction models with fixed and repeated-measures predictors. *Statistics in Medicine*. [Under review]
+> Hagan JL. Simulation code and empirical analysis for: Learner-dependent mechanisms of naive-partitioning optimism: identity-mediated leakage in clinical prediction models with fixed and repeated-measures predictors. [Under review]
 
 **Author:** Joseph L. Hagan, ScD, MSPH  
 **Affiliation:** Department of Pediatrics, Section of Neonatology, Baylor College of Medicine, Houston, Texas  
@@ -118,7 +118,7 @@ The empirical analysis script (`rop_mixed_predictor_analysis.R`) and its console
 
 If you use this code, please cite:
 
-> Hagan JL. Identity-mediated leakage in naive cross-validation of clinical prediction models with fixed and repeated-measures predictors. *Statistics in Medicine*. [Under review]
+> Hagan JL. Learner-dependent mechanisms of naive-partitioning optimism: identity-mediated leakage in clinical prediction models with fixed and repeated-measures predictors.
 
 And for the archived code:
 
