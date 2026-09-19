@@ -35,10 +35,11 @@ library(flextable)
 # =============================================================================
 # Set these three directories before running:
 #
-#   SIM_DIR  : folder containing sim_results_v8.csv (iteration-level, ~208 MB).
+#   SIM_DIR  : folder containing sim_results_v8.csv (iteration-level, ~200 MB).
 #              This file is NOT included in the repository because it exceeds
-#              GitHub file size limits. Regenerate it with run_simulation.R,
-#              or set SIM_DIR <- NULL to skip S4 and S10.
+#              GitHub file size limits. Download it from Zenodo (DOI to be
+#              added) or regenerate it with run_simulation.R, or set
+#              SIM_DIR <- NULL to skip S4 and S10.
 #
 #   DATA_DIR : folder containing the five summary-level CSV files
 #              (sim_summary_v8.csv, categorical_results.csv, etc.).
@@ -52,7 +53,7 @@ SIM_DIR  <- "."   # change to folder containing sim_results_v8.csv, or NULL to s
 DATA_DIR <- "."   # change to folder containing the summary CSVs (or leave as "." if running from repo)
 OUT_DIR  <- "."   # change to desired output folder
 
-SIM_SUMMARY   <- file.path(SIM_DIR,  "sim_summary_v8.csv")
+SIM_SUMMARY   <- file.path(DATA_DIR, "sim_summary_v8.csv")   # summary-level file (in repository)
 SIM_ITER      <- file.path(SIM_DIR,  "sim_results_v8.csv")   # large; S4 + S10 only
 FPRINT_STAB   <- file.path(DATA_DIR, "fingerprint_stability_summary.csv")
 MIX_FPRINT    <- file.path(DATA_DIR, "mixed_fingerprint_stability.csv")
@@ -292,15 +293,14 @@ cat("Building S4 ...\n")
 
 if (have_iter) {
 
-  # Compute per-condition mean Brier optimism from iteration-level data
-  # brier_true = Brier_ext (full-model on independent cohort)
-  # brier_naive = naive CV Brier
-  # brier_subject = subject-level CV Brier
-  # Optimism = brier_naive - brier_true (positive = optimism, consistent
-  #   with AUROC convention where higher CV AUROC > true AUROC)
-  # Note: for Brier, lower is better, so naive < true means the CV
-  #   underestimates error, i.e., appears better than it is.
-  #   Optimism = brier_true - brier_naive (positive means CV too optimistic)
+  # Compute per-condition mean Brier optimism from iteration-level data.
+  #   brier_true    = Brier score of the full-data model on the independent
+  #                   reference cohort
+  #   brier_naive   = naive CV Brier score
+  #   brier_subject = subject-level CV Brier score
+  # Lower Brier is better, so a naive CV Brier below the true Brier means the
+  # CV makes the model look better than it is. Optimism is therefore defined as
+  #   brier_true - brier_naive   (positive = CV too optimistic)
 
   brier_smry <- iter %>%
     group_by(condition_id, arm, learner, p_F, p_L, n, R2 = R2_total,
@@ -623,7 +623,7 @@ doc <- body_add_par(doc, s9_title, style = "Normal")
 doc <- body_add_par(doc, "", style = "Normal")
 doc <- body_add_par(doc,
   paste0("Panel A. Secondary outcome (severe retinopathy of prematurity, ",
-         "15 events among 101 subjects). Full predictor set: 8 fixed covariates ",
+         "15 events among 100 subjects). Full predictor set: 8 fixed covariates ",
          "and 7 longitudinal oxygenation variables."),
   style = "Normal")
 doc <- body_add_par(doc, "", style = "Normal")
@@ -634,7 +634,7 @@ doc <- body_add_par(doc,
          "(p_F = 2, p_L = 2): fixed covariates limited to birth weight and ",
          "gestational age; longitudinal predictors limited to Avg_FiO2 and ",
          "Avg_SpO2. Primary outcome (any retinopathy of prematurity, ",
-         "48 events among 101 subjects)."),
+         "48 events)."),
   style = "Normal")
 doc <- body_add_par(doc, "", style = "Normal")
 doc <- body_add_flextable(doc, ft_s9b)
