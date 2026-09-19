@@ -545,8 +545,9 @@ doc <- add_table(doc,
   ft_s8)
 
 # =============================================================================
-# S9. Empirical illustration: secondary outcome and reduced-predictor
-#     sensitivity analysis (V2: Avg_FiO2 + Avg_SpO2)
+# S9. Empirical illustration: secondary outcome (full predictor set, 100
+#     subjects) and reduced-predictor sensitivity analysis (V2: Avg_FiO2 +
+#     Avg_SpO2; 101 subjects), primary and secondary outcomes (Panels A to C).
 #     All values hard-coded from verified analysis output files.
 # =============================================================================
 cat("Building S9 ...\n")
@@ -581,6 +582,21 @@ panel_b <- data.frame(
   stringsAsFactors = FALSE
 )
 
+# --- Panel C: Reduced predictor set, V2, secondary outcome ---
+# Source: rop_tier2_sensitivity_2026-07-02.txt (V2 block, severe ROP)
+panel_c <- data.frame(
+  Learner       = c("LR","LR","LR","XGBoost","XGBoost","XGBoost"),
+  Configuration = rep(c("Fixed-only","Longitudinal-only","Mixed"), 2),
+  auroc_naive   = c(0.705, 0.681, 0.733, 1.000, 0.725, 1.000),
+  auroc_subject = c(0.649, 0.535, 0.654, 0.639, 0.585, 0.638),
+  auroc_loco    = c(0.648, 0.513, 0.660, 0.650, 0.591, 0.619),
+  loco_lo       = c(0.487, 0.367, 0.498, 0.522, 0.454, 0.475),
+  loco_hi       = c(0.809, 0.660, 0.821, 0.779, 0.729, 0.764),
+  delta_naive   = c(+0.057, +0.167, +0.073, +0.350, +0.134, +0.381),
+  delta_subject = c(+0.001, +0.022, -0.005, -0.011, -0.006, +0.019),
+  stringsAsFactors = FALSE
+)
+
 fmt_panel <- function(df) {
   df %>%
     mutate(
@@ -608,6 +624,7 @@ make_s9_ft <- function(df) {
 
 ft_s9a <- make_s9_ft(fmt_panel(panel_a))
 ft_s9b <- make_s9_ft(fmt_panel(panel_b))
+ft_s9c <- make_s9_ft(fmt_panel(panel_c))
 
 # Add S9 as two sub-tables within one page section
 s9_title <- paste0(
@@ -634,10 +651,19 @@ doc <- body_add_par(doc,
          "(p_F = 2, p_L = 2): fixed covariates limited to birth weight and ",
          "gestational age; longitudinal predictors limited to Avg_FiO2 and ",
          "Avg_SpO2. Primary outcome (any retinopathy of prematurity, ",
-         "48 events)."),
+         "48 events among 101 subjects). The reduced set does not include the ",
+         "five-minute Apgar score, so the subject excluded from the full-set ",
+         "analyses for a missing Apgar score is retained (101 subjects)."),
   style = "Normal")
 doc <- body_add_par(doc, "", style = "Normal")
 doc <- body_add_flextable(doc, ft_s9b)
+doc <- body_add_par(doc, "", style = "Normal")
+doc <- body_add_par(doc,
+  paste0("Panel C. Reduced predictor set as in Panel B. Secondary outcome ",
+         "(severe retinopathy of prematurity, 15 events among 101 subjects)."),
+  style = "Normal")
+doc <- body_add_par(doc, "", style = "Normal")
+doc <- body_add_flextable(doc, ft_s9c)
 doc <- body_add_break(doc)
 
 # =============================================================================
