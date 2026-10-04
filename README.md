@@ -2,7 +2,7 @@
 
 **Simulation code and empirical analysis for:**
 
-> Hagan JL. Simulation code and empirical analysis for: Learner-dependent mechanisms of naive-partitioning optimism: identity-mediated leakage in clinical prediction models with fixed and repeated-measures predictors. [Under review]
+> Hagan JL. Simulation code and empirical analysis for: Learner-dependent mechanisms of naive-partitioning optimism: cross-fold subject overlap in clinical prediction models with fixed and repeated-measures predictors. [Under review]
 
 **Author:** Joseph L. Hagan, ScD, MSPH  
 **Affiliation:** Department of Pediatrics, Section of Neonatology, Baylor College of Medicine, Houston, Texas  
@@ -38,7 +38,8 @@ mixed-predictors-cv/
 │   ├── 7-19-26_fingerprint_stability.R       -- fingerprint stability across ICC grid (S5)
 │   ├── 7-19-26_mixed_fingerprint_stability.R -- mixed fingerprint stability by composition (S8)
 │   ├── 7-19-26_categorical_fixed_arm_3.R     -- composition factorial (Table 3, S6)
-│   └── 7-19-26_penalty_sensitivity_4.R       -- penalty sensitivity analysis (S7)
+│   ├── 7-19-26_penalty_sensitivity_4.R       -- penalty sensitivity analysis (S7)
+│   └── r2_robustness_check.R          -- signal-strength (R²) robustness check for Arms B and C (uses sim_summary_v8.csv; run from the repository root)
 │
 ├── EMPIRICAL ANALYSIS
 │   └── rop_mixed_predictor_analysis.R -- retinopathy of prematurity cohort analysis (Table 4, Figure 4)
@@ -131,7 +132,7 @@ The empirical analysis script (`rop_mixed_predictor_analysis.R`) and its console
 
 If you use this code, please cite:
 
-> Hagan JL. Learner-dependent mechanisms of naive-partitioning optimism: identity-mediated leakage in clinical prediction models with fixed and repeated-measures predictors.
+> Hagan JL. Learner-dependent mechanisms of naive-partitioning optimism: cross-fold subject overlap in clinical prediction modelss with fixed and repeated-measures predictors.
 
 And for the archived code:
 
