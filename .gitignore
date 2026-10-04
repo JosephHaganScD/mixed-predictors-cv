@@ -30,3 +30,6 @@ desktop.ini
 *.tmp
 *.bak
 *~
+results/
+
+res
